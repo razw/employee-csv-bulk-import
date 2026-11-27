@@ -5,8 +5,12 @@ module ImportHelpers
     header + lines.map { |line| "#{line}\n" }.join
   end
 
-  def upload_blob(content)
-    ActiveStorage::Blob.create_and_upload!(io: StringIO.new(content), filename: "employees.csv", content_type: "text/csv")
+  # tenant を渡すと、そのテナントの直接アップロードで作られたファイルと同じ状態にする
+  def upload_blob(content, tenant: nil)
+    ActiveStorage::Blob.create_and_upload!(
+      io: StringIO.new(content), filename: "employees.csv", content_type: "text/csv",
+      metadata: tenant ? { tenant_id: tenant.id } : {}
+    )
   end
 
   def create_tenant_with_departments(*names)

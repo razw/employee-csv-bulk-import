@@ -59,7 +59,7 @@ RSpec.describe "社員 CSV インポート API", type: :request do
   end
 
   it "行エラーは行番号・列・理由で返す" do
-    blob = upload_blob(csv_with("E001,山田,yamada@example.com,営業部"))
+    blob = upload_blob(csv_with("E001,山田,yamada@example.com,営業部"), tenant:)
     id = graphql(CREATE_IMPORT, signedBlobId: blob.signed_id).dig("data", "createEmployeeImport", "employeeImport", "id")
     perform_enqueued_jobs
 
@@ -70,9 +70,9 @@ RSpec.describe "社員 CSV インポート API", type: :request do
   end
 
   it "同じテナントで実行中のインポートがあれば受け付けない" do
-    graphql(CREATE_IMPORT, signedBlobId: upload_blob(csv_with("E001,山田,yamada@example.com,人事部")).signed_id)
+    graphql(CREATE_IMPORT, signedBlobId: upload_blob(csv_with("E001,山田,yamada@example.com,人事部"), tenant:).signed_id)
 
-    second = graphql(CREATE_IMPORT, signedBlobId: upload_blob(csv_with("E002,佐藤,sato@example.com,人事部")).signed_id)
+    second = graphql(CREATE_IMPORT, signedBlobId: upload_blob(csv_with("E002,佐藤,sato@example.com,人事部"), tenant:).signed_id)
 
     expect(second.dig("data", "createEmployeeImport", "errors")).to eq [ { "message" => "実行中のインポートがあります。完了してから再度お試しください" } ]
   end
@@ -84,6 +84,16 @@ RSpec.describe "社員 CSV インポート API", type: :request do
 
     expect(result["errors"].first["message"]).to match(/上限/)
     expect(result["url"]).to be_nil
+  end
+
+  it "他テナントでアップロードされたファイルは取り込めない" do
+    other_tenant = create_tenant_with_departments("人事部")
+    blob = upload_blob(csv_with("E001,山田,yamada@example.com,人事部"), tenant: other_tenant)
+
+    result = graphql(CREATE_IMPORT, signedBlobId: blob.signed_id).dig("data", "createEmployeeImport")
+
+    expect(result["errors"]).to eq [ { "message" => "ファイルが見つかりません。もう一度アップロードしてください" } ]
+    expect(tenant.employee_imports).to be_empty
   end
 
   it "他テナントのインポートは参照できない" do
