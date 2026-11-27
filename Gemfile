@@ -42,7 +42,7 @@ end
 
 gem "csv"
 gem "graphql", "~> 2.4"
-gem "sidekiq", "~> 7.3"
+gem "sidekiq", "~> 8.1"
 gem "aws-sdk-s3", require: false
 
 group :development, :test do
