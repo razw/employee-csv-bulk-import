@@ -8,5 +8,18 @@
       "Bash(git push -f*)",
       "Bash(git push --force-with-lease*)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ruby \"$CLAUDE_PROJECT_DIR/.claude/hooks/rubocop_autocorrect.rb\""
+          }
+        ]
+      }
+    ]
   }
 }

@@ -19,6 +19,7 @@ bundle exec rspec
 ```
 
 まとめて `bin/ci` でも実行できる。
+Claude Code では、Ruby ファイルを編集するたびに `.claude/hooks/rubocop_autocorrect.rb` が `rubocop -a` をかける。自動修正で直しきれない違反はその場でエージェントに返るので、CI を待たずに直す。
 読み込み・検証・登録の性能に関わる変更をしたら、5 万行で計り直し、設計書 5 章の数値と比べる。
 
 ## 進め方: テスト駆動
