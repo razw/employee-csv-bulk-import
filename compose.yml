@@ -23,7 +23,8 @@ services:
     <<: *app
     command: bin/rails server -b 0.0.0.0
     ports:
-      - "3000:3000"
+      # 同じ LAN からは操作できないよう、ホストのループバックだけに公開する
+      - "127.0.0.1:3000:3000"
 
   worker:
     <<: *app
