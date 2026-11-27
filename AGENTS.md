@@ -20,6 +20,7 @@ bundle exec rspec
 
 まとめて `bin/ci` でも実行できる。
 Claude Code では、Ruby ファイルを編集するたびに `.claude/hooks/rubocop_autocorrect.rb` が `rubocop -a` をかける。自動修正で直しきれない違反はその場でエージェントに返るので、CI を待たずに直す。
+GraphQL の型や項目を変えたら `bin/rails graphql:dump_schema` で `schema.graphql` を更新し、`docs/api.md` の例と説明も合わせる (`schema.graphql` と `docs/api.md` の GraphQL の例は、実装とずれるとテストが失敗する。説明の文章はテストできないので目で確かめる)。
 読み込み・検証・登録の性能に関わる変更をしたら、5 万行で計り直し、設計書 5 章の数値と比べる。
 
 ## 進め方: テスト駆動

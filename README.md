@@ -4,7 +4,7 @@
 
 従業員情報の CSV をアップロードし、従業員を一括で新規登録する機能のサンプル実装 (Rails API / GraphQL / Sidekiq)。
 
-設計の詳細は [docs/design.md](docs/design.md) を参照。
+設計の詳細は [docs/design.md](docs/design.md)、フロントエンドからの API の使い方は [docs/api.md](docs/api.md) を参照。
 
 ## 特徴
 
@@ -81,4 +81,6 @@ bundle exec sidekiq -C config/sidekiq.yml
 | `app/services/employee_imports/csv_reader.rb` | 文字コード判定・ヘッダー確認・行データへの変換 |
 | `app/services/employee_imports/row_validator.rb` | 正規化と検証 (まとめて照合) |
 | `app/services/employee_imports/processor.rb` | 全件登録またはエラー保存 |
+| `schema.graphql` | API の型の定義。`bin/rails graphql:dump_schema` で実装から書き出し、ずれていればテストが失敗する |
+| `docs/api.md` | フロントエンド向けの呼ぶ順番と結果の扱い方。載せている例はテストでスキーマと照合する |
 | `db/migrate/` | テーブル定義 (一意制約・同時実行制御のインデックス) |
