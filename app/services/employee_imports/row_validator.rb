@@ -61,10 +61,14 @@ module EmployeeImports
     end
 
     def load_context(rows)
-      department_ids = @tenant.departments.pluck(:name, :id)
-                              .to_h { |name, id| [ self.class.normalize_department_name(name), id ] }
+      # 「営業１部」と「営業1部」のように、正規化すると同じ名前になる部署がマスタに共存しうる。
+      # どちらに配属すべきか決められないため、その名前は照合に使わずエラーにする
+      ids_by_name = @tenant.departments.pluck(:name, :id)
+                           .group_by { |name, _| self.class.normalize_department_name(name) }
+                           .transform_values { |pairs| pairs.map(&:last) }
       {
-        department_ids:,
+        department_ids: ids_by_name.select { |_, ids| ids.one? }.transform_values(&:first),
+        ambiguous_department_names: ids_by_name.select { |_, ids| ids.many? }.keys.to_set,
         existing_numbers: existing_values(:employee_number, rows.map(&:employee_number)),
         existing_emails: existing_values(:email, rows.map(&:email))
       }
@@ -105,6 +109,8 @@ module EmployeeImports
 
       if row.department_name.empty?
         add.("所属部署名", "必須です")
+      elsif context[:ambiguous_department_names].include?(row.department_name)
+        add.("所属部署名", "同じ名前とみなされる部署が複数あります: #{row.department_name}")
       elsif !context[:department_ids].key?(row.department_name)
         add.("所属部署名", "存在しない部署です: #{row.department_name}")
       end
