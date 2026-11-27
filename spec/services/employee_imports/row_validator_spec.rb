@@ -50,6 +50,15 @@ RSpec.describe EmployeeImports::RowValidator do
     expect(error_messages(result)).to eq [ [ 2, "所属部署名", "存在しない部署です: 営業部" ] ]
   end
 
+  it "正規化すると同じ名前になる部署が複数あれば、どちらか決められないのでエラーにする" do
+    tenant.departments.create!(name: "営業１部")
+    tenant.departments.create!(name: "営業1部")
+
+    result = validate("E001,山田,yamada@example.com,営業1部")
+
+    expect(error_messages(result)).to eq [ [ 2, "所属部署名", "同じ名前とみなされる部署が複数あります: 営業1部" ] ]
+  end
+
   it "CSV 内で重複した社員番号・email は後の行をエラーにする" do
     result = validate(
       "E001,山田,yamada@example.com,人事部",
