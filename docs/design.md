@@ -6,7 +6,7 @@
 主要処理は Rails (API) で実装し、テストと計測まで行った。
 
 - 実装: [`app/services/employee_imports/`](../app/services/employee_imports)、[`app/graphql/`](../app/graphql)、[`app/jobs/employee_import_job.rb`](../app/jobs/employee_import_job.rb)
-- テスト: [`spec/`](../spec) (32 件)
+- テスト: [`spec/`](../spec) (34 件)
 - 計測: [`script/benchmark_import.rb`](../script/benchmark_import.rb)
 
 ## 1. 前提条件
@@ -297,7 +297,7 @@ type EmployeeImport {
 
 ### 4.10 テスト
 
-RSpec で 32 件のテストを書いた。DB を使い、実際の振る舞いを確認している。
+RSpec で 34 件のテストを書いた。DB を使い、実際の振る舞いを確認している。
 
 | 対象 | 確認している内容 |
 |---|---|
@@ -305,6 +305,7 @@ RSpec で 32 件のテストを書いた。DB を使い、実際の振る舞い�
 | `RowValidator` | 正規化、必須・形式・存在しない部署、正規化すると同じ名前になる部署、CSV 内の重複、登録済みとの重複、他テナントとは重複しないこと |
 | `Processor` | 全件登録、エラー時に 1 件も登録しないこと、ファイルエラー、再実行で二重登録しないこと、**2 つのワーカーが競合する順序で同じインポートを処理しても、先に確定した結果が保たれること**、**登録の途中で DB エラーが起きたら全件ロールバックし、再実行で完了できること** |
 | GraphQL API | 直接アップロード→受付→ジョブ→結果確認の一連の流れ、行エラーの返し方、同時実行の拒否、サイズ上限、他テナントがアップロードしたファイルを取り込めないこと、他テナントから見えないこと、未認証の拒否 |
+| API 仕様書 | `schema.graphql` が実装と一致すること、`docs/api.md` に載せた GraphQL の例がスキーマに対して正しいこと |
 
 ## 5. 計測結果
 
