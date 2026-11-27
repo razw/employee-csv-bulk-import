@@ -47,7 +47,7 @@ bundle exec sidekiq -C config/sidekiq.yml
 1. Rails の雛形と設計書を置く
 2. 実装に入る前に、AI エージェントのガードレールと CI を整える
    - [AGENTS.md](AGENTS.md): 完了の条件、テスト駆動の進め方、壊してはいけない性質、禁止事項。`CLAUDE.md` から読み込む
-   - [.claude/settings.json](.claude/settings.json): 秘密情報の読み取りと force push を禁止する。Ruby ファイルを編集するたびに `rubocop -a` をかけ、直しきれない違反をエージェントに返すフックを入れる
+   - [.claude/settings.json](.claude/settings.json): AGENTS.md の禁止事項のうち、Claude Code が止められるものを拒否ルールにする (`config/master.key` と `.env` の読み取り、force push のコマンド)。ほかの経路まで遮断するものではないので、禁止事項そのものは AGENTS.md で定める。Ruby ファイルを編集するたびに `rubocop -a` をかけ、直しきれない違反をエージェントに返すフックを入れる
    - [.github/workflows/ci.yml](.github/workflows/ci.yml): RuboCop・Brakeman・bundler-audit・RSpec を実行する
 3. 機能ごとに、テストを先にコミットして CI が赤になることを確かめ、次に実装をコミットして緑にする
 4. プロトタイプのレビューで見つかった不具合 (同じインポートの並行実行、他テナントのファイル、正規化すると同じ名前になる部署) も、まず失敗するテストで再現してから直す

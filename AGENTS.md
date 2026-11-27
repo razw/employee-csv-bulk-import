@@ -43,9 +43,9 @@ Claude Code では、Ruby ファイルを編集するたびに `.claude/hooks/ru
 
 ## やってはいけないこと
 
-- `config/master.key` や `.env` を読む・コミットする (`.claude/settings.json` でも禁止している)
+- `config/master.key` や `.env` を読む・コミットする (Claude Code では `.claude/settings.json` の拒否ルールでもこれらのファイルの読み取りを止めている)
 - テストを消す、`skip` にする、期待値を実装に合わせて書き換えるなどして、テストを通す
-- main に force push する
+- main に force push する (Claude Code では force push のコマンドを拒否ルールでも止めている)
 - 失敗しているテストや警告を残したまま完了にする
 
 ## コミット
