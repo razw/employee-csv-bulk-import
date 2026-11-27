@@ -43,6 +43,36 @@ RSpec.describe EmployeeImports::Processor do
     expect(import.reload.status).to eq "completed"
   end
 
+  it "同じインポートを 2 つのワーカーが同時に処理しても、先に終わった結果を上書きしない" do
+    import = create_import(csv_with("E001,山田,yamada@example.com,人事部"))
+    other_worker_done = false
+    # 1 つ目のワーカーが検証を終えた直後に、2 つ目のワーカーが登録まで終える
+    allow_any_instance_of(EmployeeImports::RowValidator).to receive(:validate).and_wrap_original do |original, *args|
+      result = original.call(*args)
+      unless other_worker_done
+        other_worker_done = true
+        described_class.call(EmployeeImport.find(import.id))
+      end
+      result
+    end
+
+    described_class.call(EmployeeImport.find(import.id))
+
+    expect(import.reload).to have_attributes(status: "completed", imported_count: 1, failure_reason: nil)
+    expect(tenant.employees.count).to eq 1
+  end
+
+  it "完了したインポートを後から来たワーカーが重複エラーで invalid にしない" do
+    import = create_import(csv_with("E001,山田,yamada@example.com,人事部"))
+    stale = EmployeeImport.find(import.id) # 完了前に読み込んだ状態のまま処理を始めるワーカー
+
+    described_class.call(import)
+    described_class.call(stale)
+
+    expect(import.reload).to have_attributes(status: "completed", error_count: 0)
+    expect(import.import_errors).to be_empty
+  end
+
   it "登録の途中で失敗したら全件ロールバックし、再実行で最初からやり直せる" do
     stub_const("#{described_class}::INSERT_BATCH_SIZE", 1)
     import = create_import(csv_with("E001,山田,yamada@example.com,人事部", "E002,佐藤,sato@example.com,開発部"))
