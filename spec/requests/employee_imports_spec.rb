@@ -96,6 +96,20 @@ RSpec.describe "社員 CSV インポート API", type: :request do
     expect(tenant.employee_imports).to be_empty
   end
 
+  it "ファイル本体のアップロードが済んでいなければ受け付けない" do
+    content = csv_with("E001,山田,yamada@example.com,人事部")
+    upload = graphql(CREATE_DIRECT_UPLOAD, { input: {
+      filename: "employees.csv", byteSize: content.bytesize,
+      checksum: OpenSSL::Digest::MD5.base64digest(content), contentType: "text/csv"
+    } }).dig("data", "createDirectUpload")
+
+    result = graphql(CREATE_IMPORT, signedBlobId: upload["signedBlobId"]).dig("data", "createEmployeeImport")
+
+    expect(result["errors"]).to eq [ { "message" => "ファイルのアップロードが完了していません。もう一度アップロードしてください" } ]
+    expect(tenant.employee_imports).to be_empty
+    expect(EmployeeImportJob).not_to have_been_enqueued
+  end
+
   it "他テナントのインポートは参照できない" do
     import = tenant.employee_imports.create!(requested_by: user, file: upload_blob("x"))
     other_user = create_tenant_with_departments.users.create!(name: "他社ユーザー")
