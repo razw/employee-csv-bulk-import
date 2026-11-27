@@ -31,7 +31,8 @@ services:
     command: bundle exec sidekiq -C config/sidekiq.yml
 
   db:
-    image: postgres:16
+    # OS (glibc) が変わると、既存のボリュームで照合順序のバージョン不一致の警告が出るため、OS まで固定する
+    image: postgres:16-trixie
     environment:
       POSTGRES_PASSWORD: postgres
     volumes:
