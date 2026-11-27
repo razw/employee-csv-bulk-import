@@ -1,0 +1,5 @@
+# インポートは重い処理のため専用キューに分け、他の非同期処理を詰まらせないようにする
+:concurrency: 5
+:queues:
+  - imports
+  - default
