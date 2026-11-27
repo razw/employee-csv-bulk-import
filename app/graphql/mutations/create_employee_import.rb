@@ -20,6 +20,8 @@ module Mutations
         return failure("ファイルが見つかりません。もう一度アップロードしてください")
       end
       return failure("ファイルサイズの上限を超えています") if blob.byte_size > EmployeeImport::MAX_FILE_SIZE
+      # URL の発行時に Blob は作られるので、ストレージへの PUT が失敗していても blob は見つかる
+      return failure("ファイルのアップロードが完了していません。もう一度アップロードしてください") unless blob.service.exist?(blob.key)
 
       import = user.tenant.employee_imports.create!(requested_by: user, file: blob)
       EmployeeImportJob.perform_later(import.id)
