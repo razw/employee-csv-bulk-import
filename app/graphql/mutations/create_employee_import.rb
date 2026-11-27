@@ -12,7 +12,10 @@ module Mutations
     def resolve(signed_blob_id:)
       user = context[:current_user]
       blob = ActiveStorage::Blob.find_signed(signed_blob_id)
-      return failure("ファイルが見つかりません。もう一度アップロードしてください") if blob.nil?
+      # 署名が正しくても、別テナントがアップロードしたファイルは取り込ませない
+      if blob.nil? || blob.metadata["tenant_id"] != user.tenant_id
+        return failure("ファイルが見つかりません。もう一度アップロードしてください")
+      end
       return failure("ファイルサイズの上限を超えています") if blob.byte_size > EmployeeImport::MAX_FILE_SIZE
 
       import = user.tenant.employee_imports.create!(requested_by: user, file: blob)

@@ -19,7 +19,11 @@ module Mutations
         return { errors: [ { message: "ファイルサイズの上限は #{EmployeeImport::MAX_FILE_SIZE / 1.megabyte}MB です" } ] }
       end
 
-      blob = ActiveStorage::Blob.create_before_direct_upload!(filename:, byte_size:, checksum:, content_type:)
+      # どのテナントがアップロードしたかを記録し、インポート受付時に照合する
+      blob = ActiveStorage::Blob.create_before_direct_upload!(
+        filename:, byte_size:, checksum:, content_type:,
+        metadata: { tenant_id: context[:current_user].tenant_id }
+      )
       {
         url: blob.service_url_for_direct_upload,
         headers: blob.service_headers_for_direct_upload,
