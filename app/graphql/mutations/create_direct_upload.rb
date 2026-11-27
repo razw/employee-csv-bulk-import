@@ -4,15 +4,17 @@ module Mutations
   # ファイル本体はアプリサーバーを経由させず、署名付き URL でストレージ (本番は S3) に直接送る。
   # 大きなファイルの転送でリクエストが 1 分を超えるのを避けるため。
   class CreateDirectUpload < BaseMutation
-    argument :filename, String, required: true
-    argument :byte_size, Integer, required: true
-    argument :checksum, String, required: true, description: "ファイルの MD5 (Base64)"
-    argument :content_type, String, required: true
+    description "CSV をストレージ (本番は S3) へ直接アップロードするための URL を発行する。ファイル本体は API サーバーを通さない"
 
-    field :url, String, null: true
-    field :headers, GraphQL::Types::JSON, null: true, description: "アップロード時に付ける HTTP ヘッダー"
-    field :signed_blob_id, String, null: true
-    field :errors, [ Types::UserErrorType ], null: false
+    argument :filename, String, required: true, description: "ファイル名"
+    argument :byte_size, Integer, required: true, description: "ファイルサイズ (バイト)。上限は 10MB"
+    argument :checksum, String, required: true, description: "ファイルの MD5 (Base64)"
+    argument :content_type, String, required: true, description: "ファイルの MIME タイプ (例: text/csv)"
+
+    field :url, String, null: true, description: "ファイル本体を PUT する URL。errors があれば null"
+    field :headers, GraphQL::Types::JSON, null: true, description: "url への PUT に付ける HTTP ヘッダー"
+    field :signed_blob_id, String, null: true, description: "アップロード後に createEmployeeImport へ渡す ID"
+    field :errors, [ Types::UserErrorType ], null: false, description: "入力エラー。空なら成功"
 
     def resolve(filename:, byte_size:, checksum:, content_type:)
       if byte_size > EmployeeImport::MAX_FILE_SIZE

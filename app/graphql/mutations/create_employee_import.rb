@@ -4,10 +4,13 @@ module Mutations
   # アップロード済みファイルの取り込みを受け付け、ジョブに渡してすぐ返す。
   # 処理本体は非同期なので、5 万行でもレスポンスは 1 分のタイムアウトに収まる。
   class CreateEmployeeImport < BaseMutation
-    argument :signed_blob_id, String, required: true
+    description "アップロード済みの CSV の取り込みを受け付け、すぐに返す。処理は非同期で行い、結果は employeeImport クエリで確認する。" \
+                "同じテナントで終わっていないインポートがあれば受け付けない"
 
-    field :employee_import, Types::EmployeeImportType, null: true
-    field :errors, [ Types::UserErrorType ], null: false
+    argument :signed_blob_id, String, required: true, description: "createDirectUpload で返った signedBlobId"
+
+    field :employee_import, Types::EmployeeImportType, null: true, description: "受け付けたインポート (status は PENDING)。errors があれば null"
+    field :errors, [ Types::UserErrorType ], null: false, description: "受け付けられなかった理由。空なら成功"
 
     def resolve(signed_blob_id:)
       user = context[:current_user]
