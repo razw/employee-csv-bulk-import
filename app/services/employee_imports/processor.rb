@@ -29,7 +29,8 @@ module EmployeeImports
     rescue CsvReader::FileError => e
       finish!(:invalid, failure_reason: e.message)
     rescue ActiveRecord::RecordNotUnique
-      # 検証後に別の処理が同じ社員番号・email を登録した場合。前提上は起きないが、DB の一意制約で検知する
+      # 検証後に他の経路で同じ社員番号・email が登録された場合。前提で除外されているのは参照・更新・削除で、
+      # 新規登録は起こりうるため、最終的な一意性は DB の一意制約で保証する
       finish!(:failed, failure_reason: "他の処理と登録内容が競合しました。もう一度アップロードしてください")
     end
 
