@@ -1,0 +1,48 @@
+# 手元に Ruby・PostgreSQL・Redis を入れずに動かすための開発用の構成 (本番用ではない)。
+# 使い方は README の「Docker で動かす」を参照。
+x-app: &app
+  image: ruby:3.4.13
+  working_dir: /app
+  volumes:
+    - .:/app
+    - bundle:/usr/local/bundle
+  environment:
+    # database.yml にホストとユーザーを書いていないため、libpq の環境変数で接続先を渡す
+    PGHOST: db
+    PGUSER: postgres
+    PGPASSWORD: postgres
+    REDIS_URL: redis://redis:6379/0
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  app:
+    <<: *app
+    command: bin/rails server -b 0.0.0.0
+    ports:
+      - "3000:3000"
+
+  worker:
+    <<: *app
+    command: bundle exec sidekiq -C config/sidekiq.yml
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 15
+
+  redis:
+    image: redis:7
+
+volumes:
+  bundle:
+  postgres:

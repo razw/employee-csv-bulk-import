@@ -1,5 +1,7 @@
 # employee-csv-bulk-import
 
+[![CI](https://github.com/razw/employee-csv-bulk-import/actions/workflows/ci.yml/badge.svg)](https://github.com/razw/employee-csv-bulk-import/actions/workflows/ci.yml)
+
 従業員情報の CSV をアップロードし、従業員を一括で新規登録する機能のサンプル実装 (Rails API / GraphQL / Sidekiq)。
 
 設計の詳細は [docs/design.md](docs/design.md) を参照。
@@ -12,6 +14,20 @@
 - Excel で保存した Shift_JIS の CSV や、全角英数字などの表記ゆれに対応する
 
 ## 動かし方
+
+### Docker で動かす
+
+Docker だけあれば、Ruby・PostgreSQL・Redis を入れずに動かせる ([compose.yml](compose.yml)、開発用)。
+
+```bash
+docker compose run --rm app bin/setup --skip-server   # gem のインストール、DB の作成とサンプルデータの投入
+docker compose run --rm app bundle exec rspec         # テスト
+docker compose up                                     # API サーバー (localhost:3000) と Sidekiq ワーカーを起動
+```
+
+以下のコマンドも、先頭に `docker compose run --rm app` を付ければ Docker の中で実行できる。
+
+### 手元の環境で動かす
 
 必要なもの: Ruby (`.ruby-version`)、PostgreSQL、Redis
 
