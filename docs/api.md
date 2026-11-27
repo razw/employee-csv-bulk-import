@@ -11,6 +11,31 @@
 - 対象はログインユーザーのテナントのデータだけ。他テナントのインポートは `null` になる
 - TypeScript の型は、`schema.graphql` から [GraphQL Code Generator](https://the-guild.dev/graphql/codegen) などで生成できる
 
+### ローカルでブラウザから試す
+
+API は CORS を許可していないので、別のポートで動かした画面から `localhost:3000` を直接呼ぶと、ブラウザが止める。
+開発サーバーのプロキシを通し、画面と同じオリジンから呼ぶ。開発環境ではファイルの置き場所も Rails (ディスク) なので、アップロード先の URL もプロキシに通す。Vite の場合は次のとおり。
+
+```js
+// vite.config.js
+import { defineConfig } from "vite"
+
+// Host ヘッダーを書き換えない。API は Host を見てアップロード先の URL を作るので、
+// URL も http://localhost:5173/rails/active_storage/... になり、プロキシを通る
+const api = { target: "http://localhost:3000", changeOrigin: false }
+
+export default defineConfig({
+  server: {
+    proxy: {
+      "/graphql": api,
+      "/rails/active_storage": api,
+    },
+  },
+})
+```
+
+画面からは `fetch("/graphql", ...)` のように、ホストを付けずに呼ぶ。API は README の手順 (`docker compose up` など) で `localhost:3000` に起動しておく。
+
 ## 流れ
 
 ```mermaid
@@ -57,8 +82,15 @@ mutation CreateDirectUpload($input: CreateDirectUploadInput!) {
 返ってきた `url` に、`headers` をそのまま付けて `PUT` する。URL の有効期限は 5 分 (Active Storage の既定) なので、発行したらすぐに送る。
 
 ```js
-await fetch(url, { method: "PUT", headers, body: file })
+const response = await fetch(url, { method: "PUT", headers, body: file })
+if (!response.ok) {
+  // fetch は HTTP エラーでも例外にならないので、ここで止める。3. には進まない
+  throw new Error(`アップロードに失敗しました (${response.status})`)
+}
 ```
+
+失敗したら 3. に進まず、1. からやり直す (URL の期限切れもここで失敗する)。
+ファイルが届いていないまま 3. を呼んでも、API は受け付けず `errors` で返す。
 
 ### 3. 取り込みを受け付ける
 
