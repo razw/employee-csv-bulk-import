@@ -11,10 +11,12 @@ module EmployeeImports
     end
 
     def call
-      # ジョブの再実行 (リトライ・二重投入) で同じ結果になるよう、終わったものは何もしない
+      # ジョブの再実行 (リトライ・二重投入) で同じ結果になるよう、終わったものは何もしない。
+      # 手元の状態は古いことがあるため、ロックして最新の状態を読んでから判定する
+      @import.with_lock do
+        @import.update!(status: :processing, started_at: Time.current) if @import.status_pending?
+      end
       return if @import.finished?
-
-      @import.update!(status: :processing, started_at: Time.current) if @import.status_pending?
 
       rows = @import.file.open { |file| CsvReader.read(file) }
       result = RowValidator.new(@import.tenant).validate(rows)
@@ -36,28 +38,35 @@ module EmployeeImports
     # 全件を 1 トランザクションで登録し、ステータス更新も同じトランザクションに含める。
     # 途中で落ちてもロールバックされ、リトライ時は最初からやり直せる。
     def insert_employees(attributes)
-      ApplicationRecord.transaction do
+      finish!(:completed, total_rows: attributes.size, imported_count: attributes.size) do
         attributes.each_slice(INSERT_BATCH_SIZE) do |batch|
           Employee.insert_all!(batch, returning: false)
         end
-        finish!(:completed, total_rows: attributes.size, imported_count: attributes.size)
       end
     end
 
     def record_errors(errors, total_rows:)
-      ApplicationRecord.transaction do
+      finish!(:invalid, total_rows:, error_count: errors.size) do
         errors.each_slice(INSERT_BATCH_SIZE) do |batch|
           EmployeeImportError.insert_all!(
             batch.map { |e| { employee_import_id: @import.id, row_number: e.row_number, column: e.column, message: e.message } },
             returning: false
           )
         end
-        finish!(:invalid, total_rows:, error_count: errors.size)
       end
     end
 
+    # 結果の書き込みは、インポートの行をロックしてから行う。
+    # Sidekiq は同じジョブを二重に実行しうるため、別のワーカーが先に終えていたら何もしない。
+    # こうしないと、後から来たワーカーが「登録済み」の重複エラーで completed を上書きしてしまう。
     def finish!(status, **attributes)
-      @import.update!(status:, finished_at: Time.current, **attributes)
+      ApplicationRecord.transaction do
+        @import.lock!
+        next if @import.finished?
+
+        yield if block_given?
+        @import.update!(status:, finished_at: Time.current, **attributes)
+      end
     end
   end
 end
